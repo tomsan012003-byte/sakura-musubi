@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>お相手プロフィール - さくら結び</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #fffafb; color: #4a4a4a; padding: 20px; display: flex; justify-content: center; }
+        .card { width: 100%; max-width: 500px; padding: 30px; background: #ffffff; border-radius: 20px; box-shadow: 0 8px 25px rgba(255,107,129,0.12); box-sizing: border-box; text-align: center; }
+        
+        /* ボタンのスタイル */
+        .action-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 30px; }
+        .btn-like { background: linear-gradient(90deg, #ff6b81, #ff8e9e); color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(255,107,129,0.3); width: 100%; }
+        .btn-message { background: #ffffff; color: #ff6b81; border: 2px solid #ff6b81; padding: 15px 30px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn-like:hover, .btn-message:hover { opacity: 0.8; }
+
+        /* モーダル（ポップアップ）のスタイル */
+        .modal-overlay {
+            display: none; /* 初期状態は非表示 */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;
+        }
+        .modal-content {
+            background: #ffffff; width: 100%; max-width: 400px; padding: 30px; border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; position: relative;
+        }
+        .modal-content h3 { color: #ff6b81; margin-top: 0; }
+        .modal-content p { font-size: 13px; color: #666; text-align: left; line-height: 1.5; }
+        
+        /* 閉じるボタン */
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #999; }
+        
+        /* ファイル入力部分 */
+        .file-upload-area { margin: 20px 0; padding: 15px; background: #fdf5f6; border: 1px dashed #ff6b81; border-radius: 10px; }
+        input[type="file"] { width: 100%; font-size: 14px; }
+        .preview-img { display: none; width: 100%; margin-top: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        
+        .btn-submit { background: #ff6b81; color: white; border: none; padding: 12px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+    </style>
+</head>
+<body>
+
+    <!-- お相手のプロフィール画面（仮） -->
+    <div class="card">
+        <img src="https://via.placeholder.com/120" style="border-radius: 50%; margin-bottom: 15px;" alt="相手の写真">
+        <h2>さくら さん (24)</h2>
+        <p>東京都 / カフェ巡りが好きです☕️</p>
+        
+        <div class="action-buttons">
+            <button class="btn-like" onclick="checkVerification('like')">いいね！</button>
+            <button class="btn-message" onclick="checkVerification('message')">メッセージ</button>
+        </div>
+    </div>
+
+    <!-- 年齢確認ポップアップ（最初は非表示） -->
+    <div id="verificationModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">×</span>
+            <h3>🛡️ 年齢確認のお願い</h3>
+            <p>
+                「いいね」や「メッセージ」を送るには、法律（インターネット異性紹介事業）に基づき、18歳以上であることの確認が必要です。
+            </p>
+            <p style="font-size: 11px; color: #999;">
+                ※運転免許証、マイナンバーカード表面、パスポート等の画像をご提出ください。<br>
+                ※健康保険証の場合は「記号・番号・保険者番号・QRコード」を付箋などで隠して撮影してください。
+            </p>
+
+            <div class="file-upload-area">
+                <!-- capture="environment" でスマホの背面カメラが起動しやすくなる -->
+                <input type="file" id="idDocument" accept="image/*" capture="environment" onchange="previewId(this)">
+                <img id="idPreview" class="preview-img" alt="身分証プレビュー">
+            </div>
+
+            <button id="submitBtn" class="btn-submit" disabled onclick="submitVerification()">画像を提出する</button>
+        </div>
+    </div>
+
+    <script>
+        // 本来は localStorage の currentUser などから取得します
+        // 今回はテストのため、未確認（false）として設定
+        let isAgeVerified = false; 
+        let pendingVerification = false; // 審査中かどうか
+
+        // 「いいね」や「メッセージ」ボタンを押した時の処理
+        function checkVerification(actionType) {
+            if (isAgeVerified) {
+                alert(actionType === 'like' ? '「いいね」を送りました！' : 'メッセージ画面へ移動します。');
+            } else if (pendingVerification) {
+                alert('現在、年齢確認の審査中です。完了までしばらくお待ちください。');
+            } else {
+                // 未確認の場合はポップアップを表示
+                document.getElementById('verificationModal').style.display = 'flex';
+            }
+        }
+
+        // ポップアップを閉じる処理
+        function closeModal() {
+            document.getElementById('verificationModal').style.display = 'none';
+        }
+
+        // 選択した身分証画像のプレビュー表示
+        function previewId(input) {
+            const preview = document.getElementById('idPreview');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    submitBtn.disabled = false; // 画像が選ばれたら提出ボタンを押せるようにする
+                }
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.src = '';
+                preview.style.display = 'none';
+                submitBtn.disabled = true;
+            }
+        }
+
+        // 身分証の提出処理（疑似的）
+        function submitVerification() {
+            const fileInput = document.getElementById('idDocument');
+            if (!fileInput.files[0]) return;
+
+            // ！！注意！！
+            // 実際はここで fetch('/api/verify', { method: 'POST', body: 画像データ }) などを使い、
+            // サーバーに安全に送信します。localStorageには保存しません。
+
+            // 提出完了の演出
+            alert('年齢確認書類を提出しました！\n運営の確認が完了するまでしばらくお待ちください。');
+            
+            // 状態を「審査中」に変更
+            pendingVerification = true; 
+            
+            // ポップアップを閉じてリセット
+            closeModal();
+            fileInput.value = '';
+            document.getElementById('idPreview').style.display = 'none';
+            document.getElementById('submitBtn').disabled = true;
+        }
+    </script>
+</body>
+</html>

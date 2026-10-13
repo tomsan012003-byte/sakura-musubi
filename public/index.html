@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>さくら結び - ホーム</title>
+    <style>
+        body { 
+            margin: 0; 
+            font-family: sans-serif; 
+            background: #fffafb; 
+            color: #4a4a4a; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card { 
+            width: 100%; 
+            max-width: 420px; 
+            padding: 40px 30px; 
+            background: #ffffff; 
+            border-radius: 20px; 
+            box-shadow: 0 8px 25px rgba(255,107,129,0.12); 
+            text-align: center; 
+            box-sizing: border-box;
+        }
+        h1 { 
+            color: #ff6b81; 
+            font-size: 28px; 
+            margin-bottom: 10px; 
+        }
+        p.subtitle { 
+            color: #888; 
+            font-size: 14px; 
+            margin-bottom: 30px; 
+            line-height: 1.5;
+        }
+        .btn-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+        }
+        .btn-primary { 
+            background: linear-gradient(90deg, #ff6b81, #ff8e9e); 
+            color: white; 
+            border: none; 
+            padding: 14px; 
+            border-radius: 25px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            text-decoration: none; 
+            display: block; 
+            box-shadow: 0 4px 10px rgba(255,107,129,0.3);
+            transition: opacity 0.2s;
+        }
+        .btn-primary:hover { 
+            opacity: 0.9; 
+        }
+        .btn-secondary { 
+            background: #fff; 
+            color: #ff6b81; 
+            border: 2px solid #ff6b81; 
+            padding: 12px; 
+            border-radius: 25px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            text-decoration: none; 
+            display: block; 
+            transition: background 0.2s, color 0.2s;
+        }
+        .btn-secondary:hover { 
+            background: #ff6b81; 
+            color: #fff; 
+        }
+        .contact-box {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ffe3e8;
+            text-align: left;
+            font-size: 13px;
+            color: #666;
+        }
+        .contact-box h4 {
+            color: #ff6b81;
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            text-align: center;
+        }
+        .contact-box p {
+            margin: 4px 0;
+            text-align: center;
+        }
+        .admin-link {
+            margin-top: 20px;
+            font-size: 13px;
+        }
+        .admin-link a {
+            color: #aaa;
+            text-decoration: none;
+        }
+        .admin-link a:hover {
+            color: #ff6b81;
+        }
+
+        /* ★追加：運営の思い（折りたたみ）のスタイル */
+        .about-us-container {
+            margin-top: 30px;
+            text-align: left;
+            border-top: 1px dashed #ddd;
+            padding-top: 15px;
+        }
+        .about-us-summary {
+            font-size: 13px;
+            color: #888;
+            cursor: pointer;
+            user-select: none;
+            display: inline-block;
+            transition: color 0.2s;
+        }
+        .about-us-summary:hover {
+            color: #ff6b81;
+        }
+        .about-us-content {
+            display: none;
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+            background: #fcfcfc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🌸 さくら結び</h1>
+        <p class="subtitle">温かなご縁を繋ぐ、<br>日蓮正宗信徒のためのコミュニティマッチング</p>
+        
+        <div class="btn-group">
+            <a href="login.html" class="btn-primary">ログイン</a>
+            <a href="register.html" class="btn-secondary">新規会員登録</a>
+        </div>
+
+        <div class="contact-box">
+            <h4>📞 お問い合わせ</h4>
+            <p>お電話：03-XXXX-XXXX</p>
+            <p>メール：sakura.musubi01@gmail.com</p>
+        </div>
+
+        <div class="admin-link">
+            <a href="admin.html">🛡️ 管理者画面はこちら</a>
+        </div>
+
+        <!-- ★追加：運営の思い（折りたたみ） -->
+        <div class="about-us-container">
+            <div class="about-us-summary" onclick="toggleAboutUs()">
+                ▶ 当サイトの設立について（運営より）
+            </div>
+            <div id="aboutUsText" class="about-us-content">
+                当サイトは日蓮正宗の法統相続を目的としたものでもあります。<br>
+                生涯のパートナーを折伏する事は大変素晴らしい事ですが、大変な点も多々あると思います。そんなあなたに日蓮正宗内で結ばれて更なる勇猛精進にお役立ちできましたら幸いです。<br><br>
+                また、信心が薄い方も、信心が熱いパートナーと生活を共にする事で、生活の中で徐々に信心修行に励んでいただければ幸いです。<br>
+                素敵な出会いがあることをご祈念しております。
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ★追加：折りたたみを制御するスクリプト -->
+    <script>
+        function toggleAboutUs() {
+            const textObj = document.getElementById('aboutUsText');
+            if (textObj.style.display === 'block') {
+                textObj.style.display = 'none';
+            } else {
+                textObj.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>パスワード再発行 - さくら結び</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #fffafb; color: #4a4a4a; padding: 20px; }
+        .card { max-width: 420px; margin: 30px auto; padding: 30px; background: #ffffff; border-radius: 16px; box-shadow: 0 8px 20px rgba(255,107,129,0.12); }
+        h2 { color: #ff6b81; text-align: center; margin-top: 0; }
+        label { display: block; font-weight: bold; margin-top: 12px; font-size: 14px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; margin-top: 5px; font-size: 15px; }
+        button { width: 100%; background: linear-gradient(90deg, #ff6b81, #ff8e9e); color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; font-weight: bold; margin-top: 25px; cursor: pointer; }
+        button:hover { opacity: 0.9; }
+        .hint-box { background: #fff3f5; border: 1px solid #ffccd5; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center; color: #d63031; font-weight: bold; }
+        .rule-text { font-size: 12px; color: #666; margin-top: 4px; }
+        .back { text-align: center; margin-top: 15px; }
+        .back a { color: #888; text-decoration: none; font-size: 14px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🌸 パスワード再発行</h2>
+        
+        <!-- ステップ1：本人確認フォーム -->
+        <div id="step1">
+            <p style="font-size: 13px; color: #666; text-align: center;">ご登録時の情報を入力してください</p>
+            
+            <label>メールアドレス</label>
+            <input type="email" id="verifyEmail" required placeholder="example@mail.com">
+
+            <label>本名</label>
+            <input type="text" id="verifyName" required placeholder="山田 太郎">
+
+            <label>所属寺院</label>
+            <input type="text" id="verifyTemple" required placeholder="○○寺">
+
+            <button type="button" onclick="verifyUser()">次へ進む</button>
+        </div>
+
+        <!-- ステップ2：ヒント表示 ＆ 新パスワード設定フォーム -->
+        <div id="step2" class="hidden">
+            <div id="hintDisplay" class="hint-box"></div>
+
+            <label>新しいパスワード</label>
+            <input type="password" id="newPass" required placeholder="英数字を含む5文字以上">
+            <div class="rule-text">※ルール：英字と数字をそれぞれ1文字以上含んだ、5文字以上で入力してください</div>
+
+            <button type="button" onclick="resetPassword()">パスワードを再発行する</button>
+        </div>
+
+        <div class="back">
+            <a href="login.html">← ログイン画面に戻る</a>
+        </div>
+    </div>
+
+    <script>
+        let verifiedData = {};
+
+        async function verifyUser() {
+            const email = document.getElementById('verifyEmail').value.trim();
+            const name = document.getElementById('verifyName').value.trim();
+            const temple = document.getElementById('verifyTemple').value.trim();
+
+            if (!email || !name || !temple) {
+                alert('すべての項目を入力してください');
+                return;
+            }
+
+            const res = await fetch('/api/forgot-password/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, name, temple })
+            });
+            const result = await res.json();
+
+            if (!result.success) {
+                alert(result.message);
+                return;
+            }
+
+            verifiedData = { email, name, temple };
+            
+            // ヒントの表示
+            const { first, last, length } = result.hint;
+            document.getElementById('hintDisplay').innerHTML = `
+                パスワードのヒント<br>
+                文字数: ${length}文字<br>
+                最初の文字: 「${first}」 / 最後の文字: 「${last}」
+            `;
+
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+        }
+
+        async function resetPassword() {
+            const newPassword = document.getElementById('newPass').value.trim();
+            const passRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{5,}$/;
+            
+            if (!passRegex.test(newPassword)) {
+                alert('パスワードは英数字を含んだ5文字以上で入力してください');
+                return;
+            }
+
+            const res = await fetch('/api/forgot-password/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: verifiedData.email,
+                    name: verifiedData.name,
+                    temple: verifiedData.temple,
+                    newPassword: newPassword
+                })
+            });
+            const result = await res.json();
+            alert(result.message);
+            if (result.success) {
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+</body>
+</html>

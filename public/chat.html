@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>メッセージ - さくら結び</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #fffafb; color: #4a4a4a; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        .header { background: #fff; padding: 15px 25px; border-bottom: 1px solid #ffe3e8; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(255,107,129,0.05); }
+        .header h2 { color: #ff6b81; margin: 0; font-size: 20px; }
+        .header a { color: #888; text-decoration: none; font-size: 14px; font-weight: bold; }
+        .header a:hover { color: #ff6b81; }
+        .chat-container { flex: 1; max-width: 700px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow: hidden; }
+        .messages-box { flex: 1; overflow-y: auto; background: #fff; border-radius: 12px; padding: 15px; box-shadow: 0 4px 15px rgba(255,107,129,0.05); display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; border: 1px solid #ffe3e8; }
+        .message { max-width: 70%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.4; word-break: break-all; position: relative; }
+        .message.sent { background: linear-gradient(90deg, #ff6b81, #ff8e9e); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .message.received { background: #f1f2f6; color: #333; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .message img { max-width: 100%; border-radius: 8px; margin-top: 6px; cursor: pointer; display: block; border: 1px solid rgba(0,0,0,0.1); }
+        
+        /* タイムスタンプと既読表示を整えるスタイル */
+        .message .time { 
+            font-size: 10px; 
+            margin-top: 4px; 
+            text-align: right; 
+            opacity: 0.8; 
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        /* 入力＆添付エリア */
+        .input-wrapper { background: #fff; border-radius: 12px; padding: 10px; box-shadow: 0 4px 15px rgba(255,107,129,0.05); border: 1px solid #ffe3e8; display: flex; flex-direction: column; gap: 8px; }
+        .chat-image-preview-container { display: none; position: relative; width: fit-content; }
+        .chat-image-preview-container img { max-height: 80px; border-radius: 8px; border: 1px solid #ddd; }
+        .chat-image-preview-container .remove-img-btn { position: absolute; top: -6px; right: -6px; background: #ff4757; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        
+        .input-box { display: flex; gap: 8px; align-items: center; }
+        .input-box input[type="text"] { flex: 1; padding: 10px 15px; border: 1px solid #ddd; border-radius: 20px; font-size: 15px; outline: none; box-sizing: border-box; }
+        .input-box input[type="text"]:focus { border-color: #ff6b81; }
+        .attach-btn { background: #f1f2f6; color: #555; border: none; padding: 10px 12px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .attach-btn:hover { background: #e4e5e9; }
+        .input-box button.send-btn { background: linear-gradient(90deg, #ff6b81, #ff8e9e); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        .input-box button.send-btn:hover { opacity: 0.9; }
+
+        /* モーダル */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 1000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: #ffffff; width: 100%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; position: relative; }
+        .modal-content h3 { color: #ff6b81; margin-top: 0; }
+        .modal-content p { font-size: 13px; color: #666; text-align: left; line-height: 1.5; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #999; }
+        .file-upload-area { margin: 20px 0; padding: 15px; background: #fdf5f6; border: 1px dashed #ff6b81; border-radius: 10px; }
+        .file-upload-area input[type="file"] { width: 100%; font-size: 14px; }
+        .preview-img { display: none; width: 100%; margin-top: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        .btn-submit { background: #ff6b81; color: white; border: none; padding: 12px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2 id="partnerTitle">チャット</h2>
+        <a href="dashboard.html">← 会員一覧に戻る</a>
+    </div>
+
+    <div class="chat-container">
+        <div class="messages-box" id="messagesBox"></div>
+        
+        <div class="input-wrapper">
+            <!-- 選択された画像のプレビュー表示エリア -->
+            <div id="chatImagePreviewArea" class="chat-image-preview-container">
+                <img id="chatImagePreview" src="" alt="添付画像" onerror="this.style.display='none';">
+                <button type="button" class="remove-img-btn" onclick="clearSelectedImage()">×</button>
+            </div>
+
+            <div class="input-box">
+                <!-- 画像選択ボタン -->
+                <label for="chatImageInput" class="attach-btn" title="画像を添付">📷</label>
+                <input type="file" id="chatImageInput" accept="image/*" style="display: none;" onchange="previewChatImage(this)">
+
+                <input type="text" id="messageInput" placeholder="メッセージを入力..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <button type="button" class="send-btn" onclick="sendMessage()">送信</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 年齢確認モーダル -->
+    <div id="verificationModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">×</span>
+            <h3>🛡️ 年齢確認のお願い</h3>
+            <p>
+                メッセージを送信するには、法律（インターネット異性紹介事業）に基づき、18歳以上であることの確認が必要です。
+            </p>
+            <p style="font-size: 11px; color: #999;">
+                ※運転免許証、マイナンバーカード表面、パスポート等の画像をご提出ください。<br>
+                ※健康保険証の場合は「記号・番号・保険者番号・QRコード」を付箋などで隠して撮影してください。
+            </p>
+
+            <div class="file-upload-area">
+                <input type="file" id="idDocument" accept="image/*" capture="environment" onchange="previewId(this)">
+                <img id="idPreview" class="preview-img" alt="身分証プレビュー" onerror="this.style.display='none';">
+            </div>
+
+            <button id="submitBtn" class="btn-submit" disabled onclick="submitVerification()">画像を提出する</button>
+        </div>
+    </div>
+
+    <script>
+        const me = JSON.parse(localStorage.getItem('currentUser'));
+        if (!me) {
+            window.location.href = 'login.html';
+        }
+
+        // メールアドレスを小文字化
+        if (me.email) me.email = me.email.toLowerCase();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let partnerEmail = urlParams.get('to');
+
+        if (!partnerEmail) {
+            alert('相手が指定されていません');
+            window.location.href = 'dashboard.html';
+        } else {
+            partnerEmail = partnerEmail.toLowerCase();
+        }
+
+        let partnerNickname = 'お相手';
+        let isAgeVerified = false; 
+        let pendingVerification = false; 
+        let lastMessageCount = 0;
+
+        async function initChat() {
+            try {
+                const uRes = await fetch('/api/users');
+                if (!uRes.ok) throw new Error('ユーザー情報の取得に失敗しました');
+                const users = await uRes.json();
+
+                const myInfo = users.find(u => (u.email || '').toLowerCase() === me.email);
+                if (myInfo) {
+                    isAgeVerified = myInfo.isAgeVerified || false;
+                    pendingVerification = myInfo.pendingVerification || false;
+                }
+
+                const partner = users.find(u => (u.email || '').toLowerCase() === partnerEmail);
+                if (partner) {
+                    partnerNickname = partner.nickname;
+                    document.getElementById('partnerTitle').textContent = `${partnerNickname}さんとのチャット`;
+                }
+
+                await loadMessages(true);
+                setInterval(() => loadMessages(false), 3000); 
+            } catch (err) {
+                console.error('初期化エラー', err);
+            }
+        }
+
+        async function loadMessages(forceScroll = false) {
+            try {
+                const res = await fetch(`/api/messages/${encodeURIComponent(me.email)}/${encodeURIComponent(partnerEmail)}`);
+                if (!res.ok) return;
+                const messages = await res.json();
+                 
+                const box = document.getElementById('messagesBox');
+                
+                if (!forceScroll && messages.length === lastMessageCount) return;
+                lastMessageCount = messages.length;
+
+                // 【改善1】ユーザーが現在下部付近にいるかどうかを判定
+                const isNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 100;
+
+                box.innerHTML = '';
+
+                if (messages.length === 0) {
+                    box.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">まだメッセージはありません。最初の挨拶を送ってみましょう！</p>';
+                    return;
+                }
+
+                messages.forEach(m => {
+                    const div = document.createElement('div');
+                    const isSent = (m.senderEmail || '').toLowerCase() === me.email;
+                    div.className = `message ${isSent ? 'sent' : 'received'}`;
+                    
+                    let contentHtml = '';
+                    if (m.text) {
+                        contentHtml += `<div>${escapeHtml(m.text)}</div>`;
+                    }
+                    if (m.imageUrl) {
+                        contentHtml += `<img src="${m.imageUrl}" alt="添付画像" onerror="this.style.display='none';" onclick="window.open('${m.imageUrl}', '_blank')">`;
+                    }
+                    
+                    // 【改善2】時間と既読ステータスの表示（送信メッセージにのみ既読を表示）
+                    let infoHtml = `<div class="time">${m.time || ''}`;
+                    if (isSent) {
+                        infoHtml += ` <span style="font-size:9px; opacity:${m.read ? '1' : '0.6'}">${m.read ? '既読' : ''}</span>`;
+                    }
+                    infoHtml += `</div>`;
+
+                    contentHtml += infoHtml;
+                    div.innerHTML = contentHtml;
+                    box.appendChild(div);
+                });
+
+                // 【改善1】初回強制スクロール、または一番下にいた場合のみ最下部へ移動
+                if (forceScroll || isNearBottom) {
+                    box.scrollTop = box.scrollHeight;
+                }
+            } catch (err) {
+                console.error('メッセージ取得エラー', err);
+            }
+        }
+
+        function previewChatImage(input) {
+            const previewArea = document.getElementById('chatImagePreviewArea');
+            const previewImg = document.getElementById('chatImagePreview');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    previewArea.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function clearSelectedImage() {
+            const input = document.getElementById('chatImageInput');
+            const previewArea = document.getElementById('chatImagePreviewArea');
+            const previewImg = document.getElementById('chatImagePreview');
+
+            input.value = '';
+            previewImg.src = '';
+            previewArea.style.display = 'none';
+        }
+
+        async function sendMessage() {
+            if (!isAgeVerified) {
+                if (pendingVerification) {
+                    alert('現在、年齢確認の審査中です。完了までしばらくお待ちください。');
+                } else {
+                    document.getElementById('verificationModal').style.display = 'flex';
+                }
+                return;
+            }
+
+            const textInput = document.getElementById('messageInput');
+            const imageInput = document.getElementById('chatImageInput');
+
+            const text = textInput.value.trim();
+            const file = imageInput.files[0];
+
+            if (!text && !file) return;
+
+            const formData = new FormData();
+            formData.append('senderEmail', me.email);
+            formData.append('receiverEmail', partnerEmail);
+            formData.append('text', text);
+            if (file) {
+                formData.append('image', file);
+            }
+
+            try {
+                const res = await fetch('/api/messages', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.success) {
+                    textInput.value = ' ';
+                    textInput.value = '';
+                    clearSelectedImage();
+                    await loadMessages(true);
+                } else {
+                    alert(result.message);
+                }
+            } catch (err) {
+                alert('送信エラーが発生しました');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('verificationModal').style.display = 'none';
+        }
+
+        function previewId(input) {
+            const preview = document.getElementById('idPreview');
+            const submitBtn = document.getElementById('submitBtn');
+             
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    submitBtn.disabled = false;
+                }
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.src = '';
+                preview.style.display = 'none';
+                submitBtn.disabled = true;
+            }
+        }
+
+        async function submitVerification() {
+            const fileInput = document.getElementById('idDocument');
+            if (!fileInput.files[0]) {
+                alert('画像ファイルを選択してください');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('idImage', fileInput.files[0]);
+            formData.append('email', me.email);
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '送信中...';
+
+            try {
+                const res = await fetch('/api/verify', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    pendingVerification = true; 
+                    closeModal();
+                } else {
+                    alert(result.message || '提出に失敗しました');
+                    submitBtn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('通信エラーが発生しました。もう一度お試しください。');
+                submitBtn.disabled = false;
+            } finally {
+                submitBtn.textContent = '画像を提出する';
+                fileInput.value = '';
+                document.getElementById('idPreview').style.display = 'none';
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&'`<>]/g, match => ({
+                '&': '&amp;',
+                '"': '&quot;',
+                "'": '&#x27;',
+                '<': '&lt;',
+                '>': '&gt;',
+            }[match]));
+        }
+
+        initChat();
+    </script>
+</body>
+</html>

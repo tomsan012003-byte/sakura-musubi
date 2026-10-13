@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>管理者画面 - さくら結び</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #fffafb; color: #4a4a4a; padding: 20px; box-sizing: border-box; }
+        .header { max-width: 1000px; margin: 0 auto 20px auto; display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(255,107,129,0.05); border: 1px solid #ffe3e8; }
+        .header h1 { color: #ff6b81; margin: 0; font-size: 22px; }
+        .header button { background: #f1f2f6; color: #666; border: none; padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        .container { max-width: 1000px; margin: 0 auto 20px auto; background: #fff; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(255,107,129,0.05); border: 1px solid #ffe3e8; }
+        h2 { color: #ff6b81; margin-top: 0; font-size: 18px; border-bottom: 2px solid #ffe3e8; padding-bottom: 10px; }
+        
+        /* パスワード変更エリアのスタイル */
+        .pass-change-box { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 15px; }
+        .pass-change-box input { padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
+        .pass-change-box input:focus { border-color: #ff6b81; }
+        .btn-change-pass { background: #ff6b81; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-change-pass:hover { opacity: 0.9; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ffe3e8; font-size: 14px; vertical-align: middle; }
+        th { background: #fff5f6; color: #ff6b81; font-weight: bold; }
+        .user-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #ff8e9e; display: block; }
+        .default-avatar-icon { width: 45px; height: 45px; border-radius: 50%; background: #ffe3e8; display: flex; align-items: center; justify-content: center; fill: #ff6b81; }
+        .sub-info { font-size: 12px; color: #888; margin-top: 2px; }
+        .btn-delete { background: #ff4757; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn-delete:hover { opacity: 0.8; }
+        .btn-verify { background: #2ed573; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; margin-right: 5px; }
+        .btn-deny { background: #ffa502; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .badge-verified { background: #2ed573; color: white; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; display: inline-block; margin-top: 3px; }
+        .badge-pending { background: #ffa502; color: white; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; display: inline-block; margin-top: 3px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🌹 さくら結び 管理者画面</h1>
+        <button onclick="logout()">ログアウト</button>
+    </div>
+
+    <!-- ▼▼▼ 管理者パスワード変更フォーム ▼▼▼ -->
+    <div class="container">
+        <h2>🔐 管理者パスワード変更</h2>
+        <div class="pass-change-box">
+            <input type="password" id="currentAdminPass" placeholder="現在のパスワード">
+            <input type="password" id="newAdminPass" placeholder="新しいパスワード（英数字5文字以上）" style="flex: 1; min-width: 200px;">
+            <button class="btn-change-pass" onclick="changeAdminPassword()">変更する</button>
+        </div>
+    </div>
+
+    <!-- ▼▼▼ 登録会員一覧 ▼▼▼ -->
+    <div class="container">
+        <h2>登録会員一覧</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>写真</th>
+                    <th>ニックネーム / 本名</th>
+                    <th>性別 / 年齢</th>
+                    <th>メール / 地域</th>
+                    <th>所属寺院</th>
+                    <th>年齢確認</th>
+                    <th>登録年月日</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+                <!-- JavaScriptでここにユーザーを表示します -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const admin = JSON.parse(localStorage.getItem('currentUser'));
+        if (!admin || admin.role !== 'admin') {
+            alert('管理者権限が必要です');
+            window.location.href = 'login.html';
+        }
+
+        // 管理者パスワード変更処理
+        async function changeAdminPassword() {
+            const currentPassword = document.getElementById('currentAdminPass').value;
+            const newPassword = document.getElementById('newAdminPass').value;
+
+            if (!currentPassword || !newPassword) {
+                alert('現在のパスワードと新しいパスワードを入力してください');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                const result = await res.json();
+                alert(result.message);
+                if (result.success) {
+                    document.getElementById('currentAdminPass').value = '';
+                    document.getElementById('newAdminPass').value = '';
+                }
+            } catch (err) {
+                alert('パスワード変更処理に失敗しました');
+            }
+        }
+
+        // デフォルトアイコン（SVG）を生成する関数
+        const getDefaultAvatarHtml = () => `
+            <div class="default-avatar-icon">
+                <svg viewBox="0 0 24 24" width="28" height="28">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+            </div>
+        `;
+
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/users');
+                const users = await res.json();
+                const tbody = document.getElementById('userTableBody');
+                tbody.innerHTML = '';
+
+                users.forEach(user => {
+                    const tr = document.createElement('tr');
+
+                    // 写真が未設定、またはロードに失敗した場合の画像表示処理
+                    let photoHtml = '';
+                    if (user.photo && user.photo.trim() !== '') {
+                        // 修正箇所：謎の文字が発生しないように ` onerror="..." ` の中身のクォーテーションを適切に処理
+                        const defaultImgBase64 = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='28' height='28'%3E%3Cpath fill='%23ff6b81' d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+                        photoHtml = `<img src="${escapeHtml(user.photo)}" class="user-avatar" alt="顔写真" onerror="this.onerror=null; this.src='${defaultImgBase64}'; this.className='default-avatar-icon';">`;
+                    } else {
+                        photoHtml = getDefaultAvatarHtml();
+                    }
+
+                    // 年齢確認ステータスのバッジと操作ボタン
+                    let verifyStatusHtml = '';
+                    if (user.isAgeVerified) {
+                        verifyStatusHtml = '<span class="badge-verified">確認済み</span>';
+                    } else if (user.pendingVerification) {
+                        verifyStatusHtml = `
+                            <span class="badge-pending">申請中</span><br>
+                            <div style="margin-top:5px;">
+                                <button class="btn-verify" onclick="verifyUser('${user.email}', true)">承認</button>
+                                <button class="btn-deny" onclick="verifyUser('${user.email}', false)">却下</button>
+                            </div>
+                        `;
+                    } else {
+                        verifyStatusHtml = '<span style="color:#aaa; font-size:11px;">未提出</span>';
+                    }
+
+                    tr.innerHTML = `
+                        <td>${photoHtml}</td>
+                        <td>
+                            <strong>${escapeHtml(user.nickname || '未設定')}</strong>
+                            <div class="sub-info">${escapeHtml(user.name || '')}</div>
+                        </td>
+                        <td>
+                            ${escapeHtml(user.gender || '未設定')}
+                            <div class="sub-info">${user.age ? user.age + '歳' : ''}</div>
+                        </td>
+                        <td>
+                            ${escapeHtml(user.email)}
+                            <div class="sub-info">${escapeHtml(user.region || '未設定')}</div>
+                        </td>
+                        <td>${escapeHtml(user.temple || '未設定')}</td>
+                        <td>${verifyStatusHtml}</td>
+                        <td>${escapeHtml(user.createdAt || '-')}</td>
+                        <td>
+                            <button class="btn-delete" onclick="deleteUser('${user.email}')">削除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error('ユーザー情報の読み込みエラー:', err);
+            }
+        }
+
+        async function verifyUser(email, approved) {
+            const actionText = approved ? '承認' : '却下';
+            if (!confirm(`${email} さんの年齢確認を${actionText}しますか？`)) return;
+
+            try {
+                const res = await fetch('/api/admin/verify-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, approved })
+                });
+                const result = await res.json();
+                alert(result.message);
+                loadUsers();
+            } catch (err) {
+                alert('処理中にエラーが発生しました');
+            }
+        }
+
+        async function deleteUser(email) {
+            if (!confirm(`本当に ${email} のユーザーを削除しますか？`)) return;
+
+            try {
+                const res = await fetch(`/api/users/${encodeURIComponent(email)}`, {
+                    method: 'DELETE'
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('ユーザーを削除しました');
+                    loadUsers();
+                } else {
+                    alert(result.message);
+                }
+            } catch (err) {
+                alert('削除処理に失敗しました');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'login.html';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&'`<>]/g, match => ({
+                '&': '&amp;',
+                '"': '&quot;',
+                "'": '&#x27;',
+                '<': '&lt;',
+                '>': '&gt;',
+            }[match]));
+        }
+
+        loadUsers();
+    </script>
+</body>
+</html>

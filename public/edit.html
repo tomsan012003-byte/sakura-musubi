@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>プロフィール編集 - さくら結び</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #fffafb; color: #4a4a4a; padding: 20px; display: flex; justify-content: center; }
+        .card { width: 100%; max-width: 600px; padding: 30px; background: #ffffff; border-radius: 20px; box-shadow: 0 8px 25px rgba(255,107,129,0.12); box-sizing: border-box; margin-bottom: 40px; }
+        h2 { color: #ff6b81; text-align: center; margin-top: 0; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 14px; }
+        input[type="text"], input[type="number"], input[type="date"], input[type="password"], select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        textarea { height: 100px; resize: vertical; }
+        .privacy-toggle { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; background: #fffafb; padding: 8px 12px; border-radius: 6px; border: 1px solid #ffe3e8; }
+        .privacy-toggle label { margin: 0; font-weight: normal; font-size: 13px; color: #666; }
+        
+        .notification-setting { background: #fff0f3; border: 1px solid #ffccd5; padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; }
+        .notification-setting label { display: flex; align-items: center; gap: 8px; font-weight: bold; color: #d63384; cursor: pointer; margin: 0; }
+
+        /* 写真編集エリアのスタイル */
+        .photo-container { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 10px; }
+        .preview-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #ff6b81; display: block; }
+        
+        /* サブ写真ギャラリー用スタイル */
+        .sub-photos-container { display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; }
+        .sub-photo-box { text-align: center; background: #fdf5f6; padding: 10px; border-radius: 12px; border: 1px dashed #ff6b81; }
+        .preview-sub-img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; display: block; margin-bottom: 6px; background: #fff; }
+
+        .btn-delete-photo { background: #fff0f3; color: #e63946; border: 1px solid #ffccd5; padding: 6px 14px; border-radius: 15px; font-size: 12px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        .btn-delete-photo:hover { background: #ffe3e8; }
+
+        .btn-submit { width: 100%; background: linear-gradient(90deg, #ff6b81, #ff8e9e); color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 10px rgba(255,107,129,0.3); }
+        .btn-submit:hover { opacity: 0.9; }
+
+        /* アコーディオン（トグル開閉）用スタイル */
+        .toggle-section-header { margin-top: 35px; padding-top: 20px; border-top: 2px dashed #ffe3e8; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+        .toggle-section-header h3 { font-size: 16px; margin: 0; }
+        .toggle-arrow { font-size: 14px; color: #888; transition: transform 0.2s; }
+        .toggle-content { display: none; margin-top: 15px; padding-top: 5px; }
+        .toggle-content.open { display: block; }
+
+        .btn-secondary { background: #f1f2f6; color: #555; border: 1px solid #ddd; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn-secondary:hover { background: #e4e6eb; }
+        
+        .danger-header { border-top-color: #ffccd5; }
+        .btn-danger { background: #fff0f3; color: #ff4757; border: 1px solid #ffccd5; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 13px; transition: 0.2s; width: 100%; }
+        .btn-danger:hover { background: #ffe3e8; }
+
+        .back-link { text-align: center; margin-top: 20px; }
+        .back-link a { color: #888; text-decoration: none; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>⚙️ プロフィール編集</h2>
+        
+        <form id="editForm">
+            <!-- メール通知設定 -->
+            <div class="notification-setting">
+                <label>
+                    <input type="checkbox" id="emailNotification" checked>
+                    📧 新着メッセージのメール通知を受け取る
+                </label>
+            </div>
+
+            <!-- メイン写真 -->
+            <div class="form-group">
+                <label>メイン写真</label>
+                <input type="file" id="photoInput" accept="image/*" onchange="previewMainPhoto(this)">
+                <div class="photo-container">
+                    <img id="photoPreview" class="preview-img" src="" alt="プレビュー">
+                    <button type="button" id="btnDeletePhoto" class="btn-delete-photo" onclick="deleteMainPhoto()" style="display: none;">🗑️ 写真を削除する</button>
+                </div>
+            </div>
+
+            <!-- サブ写真（最大2枚） -->
+            <div class="form-group">
+                <label>サブ写真（アルバム用・最大2枚）</label>
+                <div class="sub-photos-container">
+                    <!-- サブ写真1 -->
+                    <div class="sub-photo-box">
+                        <img id="subPhotoPreview0" class="preview-sub-img" src="" alt="サブ1プレビュー">
+                        <input type="file" id="subPhotoInput0" accept="image/*" style="font-size: 11px; width: 110px;" onchange="previewSubPhoto(this, 0)">
+                        <button type="button" id="btnDeleteSub0" class="btn-delete-photo" onclick="deleteSubPhoto(0)" style="display: none; margin-top: 4px; font-size: 10px; padding: 3px 8px;">削除</button>
+                    </div>
+                    <!-- サブ写真2 -->
+                    <div class="sub-photo-box">
+                        <img id="subPhotoPreview1" class="preview-sub-img" src="" alt="サブ2プレビュー">
+                        <input type="file" id="subPhotoInput1" accept="image/*" style="font-size: 11px; width: 110px;" onchange="previewSubPhoto(this, 1)">
+                        <button type="button" id="btnDeleteSub1" class="btn-delete-photo" onclick="deleteSubPhoto(1)" style="display: none; margin-top: 4px; font-size: 10px; padding: 3px 8px;">削除</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ニックネーム -->
+            <div class="form-group">
+                <label>ニックネーム</label>
+                <input type="text" id="nickname" required>
+            </div>
+
+            <!-- 居住地 -->
+            <div class="form-group">
+                <label>居住地</label>
+                <input type="text" id="region" placeholder="例: 東京都" required>
+            </div>
+
+            <!-- 生年月日（入力で年齢を自動計算） -->
+            <div class="form-group">
+                <label>生年月日</label>
+                <input type="date" id="birthdate" onchange="autoCalculateAge()">
+                <div class="privacy-toggle">
+                    <label>公開する</label>
+                    <input type="checkbox" id="priv_birthdate" checked>
+                </div>
+            </div>
+
+            <!-- 年齢（自動算出） -->
+            <div class="form-group">
+                <label>年齢（生年月日より自動計算）</label>
+                <input type="number" id="age" readonly style="background-color: #f5f5f5;">
+            </div>
+
+            <!-- 血液型 -->
+            <div class="form-group">
+                <label>血液型</label>
+                <select id="bloodType">
+                    <option value="A型">A型</option>
+                    <option value="B型">B型</option>
+                    <option value="O型">O型</option>
+                    <option value="AB型">AB型</option>
+                    <option value="不明">不明</option>
+                </select>
+                <div class="privacy-toggle">
+                    <label>公開する</label>
+                    <input type="checkbox" id="priv_bloodType" checked>
+                </div>
+            </div>
+
+            <!-- 職業 -->
+            <div class="form-group">
+                <label>職業</label>
+                <input type="text" id="job" placeholder="例: 会社員">
+                <div class="privacy-toggle">
+                    <label>公開する</label>
+                    <input type="checkbox" id="priv_job" checked>
+                </div>
+            </div>
+
+            <!-- 年収 -->
+            <div class="form-group">
+                <label>年収</label>
+                <input type="text" id="income" placeholder="例: 350万円">
+                <div class="privacy-toggle">
+                    <label>公開する</label>
+                    <input type="checkbox" id="priv_income" checked>
+                </div>
+            </div>
+
+            <!-- 兄弟構成 -->
+            <div class="form-group">
+                <label>兄弟構成</label>
+                <input type="text" id="siblings" placeholder="例: 長男">
+                <div class="privacy-toggle">
+                    <label>公開する</label>
+                    <input type="checkbox" id="priv_siblings" checked>
+                </div>
+            </div>
+
+            <!-- 趣味 -->
+            <div class="form-group">
+                <label>趣味</label>
+                <input type="text" id="hobbies" placeholder="例: 料理、麻雀、競馬">
+                <div class="privacy-toggle">
+                    <label>公開する</label>
+                    <input type="checkbox" id="priv_hobbies" checked>
+                </div>
+            </div>
+
+            <!-- 自己PR -->
+            <div class="form-group">
+                <label>自己PR</label>
+                <textarea id="pr" placeholder="自己PRを入力してください"></textarea>
+                <div class="privacy-toggle">
+                    <label>公開する</label>
+                    <input type="checkbox" id="priv_pr" checked>
+                </div>
+            </div>
+
+            <button type="button" class="btn-submit" onclick="saveProfile()">更新を保存する</button>
+
+            <!-- パスワード変更（クリックで展開） -->
+            <div class="toggle-section-header" onclick="toggleSection('passwordSection', 'passwordArrow')">
+                <h3 style="color: #ff6b81;">🔒 パスワードの変更</h3>
+                <span id="passwordArrow" class="toggle-arrow">▼ 展開する</span>
+            </div>
+            <div id="passwordSection" class="toggle-content">
+                <div class="form-group">
+                    <label>現在のパスワード</label>
+                    <input type="password" id="currentPassword" placeholder="現在のパスワード">
+                </div>
+                <div class="form-group">
+                    <label>新しいパスワード（英数字5文字以上）</label>
+                    <input type="password" id="newPassword" placeholder="新しいパスワード">
+                </div>
+                <button type="button" class="btn-secondary" onclick="changePassword()">パスワードを変更する</button>
+            </div>
+
+            <!-- 退会セクション（クリックで展開） -->
+            <div class="toggle-section-header danger-header" onclick="toggleSection('deleteSection', 'deleteArrow')">
+                <h3 style="color: #ff4757;">⚠️ 退会について</h3>
+                <span id="deleteArrow" class="toggle-arrow">▼ 展開する</span>
+            </div>
+            <div id="deleteSection" class="toggle-content" style="text-align: center;">
+                <p style="font-size: 12px; color: #666; margin-bottom: 15px;">退会するとアカウントデータが完全に削除され、元に戻すことはできません。</p>
+                <button type="button" class="btn-danger" onclick="confirmDeleteAccount()">さくら結びを退会する</button>
+            </div>
+        </form>
+
+        <div class="back-link">
+            <a href="dashboard.html">← 会員一覧に戻る</a>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_PHOTO = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23ffe3e8'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%23ff6b81'/%3E%3Cpath d='M 20 85 C 20 65, 35 60, 50 60 C 65 60, 80 65, 80 85 Z' fill='%23ff6b81'/%3E%3C/svg%3E";
+        
+        let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser) {
+            window.location.href = 'login.html';
+        }
+
+        let currentPhotoData = currentUser.photo || '';
+        let currentSubPhotos = currentUser.photos ? [...currentUser.photos] : [];
+
+        // セクションの開閉用関数
+        function toggleSection(sectionId, arrowId) {
+            const section = document.getElementById(sectionId);
+            const arrow = document.getElementById(arrowId);
+            if (section.classList.contains('open')) {
+                section.classList.remove('open');
+                arrow.textContent = '▼ 展開する';
+            } else {
+                section.classList.add('open');
+                arrow.textContent = '▲ 閉じる';
+            }
+        }
+
+        // 日付文字列を <input type="date"> に適した YYYY-MM-DD 形式に整形する関数
+        function formatDateForInput(dateStr) {
+            if (!dateStr) return '';
+            let cleanStr = String(dateStr).replace(/\//g, '-').split('T')[0];
+            const parts = cleanStr.split('-');
+            if (parts.length === 3) {
+                const y = parts[0];
+                const m = parts[1].padStart(2, '0');
+                const d = parts[2].padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            return cleanStr;
+        }
+
+        // 生年月日から年齢を自動算出
+        function autoCalculateAge() {
+            const birthVal = document.getElementById('birthdate').value;
+            if (!birthVal) {
+                if (currentUser.age) {
+                    document.getElementById('age').value = currentUser.age;
+                }
+                return;
+            }
+
+            const birthDate = new Date(birthVal);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            document.getElementById('age').value = age < 0 ? 0 : age;
+        }
+
+        // 写真エリアの表示更新
+        function updatePhotoDisplay() {
+            const previewEl = document.getElementById('photoPreview');
+            const deleteBtnEl = document.getElementById('btnDeletePhoto');
+
+            if (currentPhotoData && currentPhotoData !== DEFAULT_PHOTO) {
+                previewEl.src = currentPhotoData;
+                deleteBtnEl.style.display = 'inline-block';
+            } else {
+                previewEl.src = DEFAULT_PHOTO;
+                deleteBtnEl.style.display = 'none';
+            }
+
+            // サブ写真の表示更新
+            for (let i = 0; i < 2; i++) {
+                const subPreview = document.getElementById(`subPhotoPreview${i}`);
+                const subDeleteBtn = document.getElementById(`btnDeleteSub${i}`);
+                const subData = currentSubPhotos[i];
+
+                if (subData) {
+                    subPreview.src = subData;
+                    subDeleteBtn.style.display = 'inline-block';
+                } else {
+                    subPreview.src = DEFAULT_PHOTO;
+                    subDeleteBtn.style.display = 'none';
+                }
+            }
+        }
+
+        // ページの初期化
+        function initForm() {
+            document.getElementById('emailNotification').checked = currentUser.emailNotification !== false;
+            document.getElementById('nickname').value = currentUser.nickname || '';
+            document.getElementById('region').value = currentUser.region || '';
+            
+            const rawBirthdate = currentUser.birthdate || currentUser.birthDate || currentUser.birthday || '';
+            if (rawBirthdate) {
+                document.getElementById('birthdate').value = formatDateForInput(rawBirthdate);
+            } else {
+                document.getElementById('birthdate').value = '';
+            }
+            
+            autoCalculateAge();
+
+            document.getElementById('bloodType').value = currentUser.bloodType || 'A型';
+            document.getElementById('job').value = currentUser.job || '';
+            document.getElementById('income').value = currentUser.income || '';
+            document.getElementById('siblings').value = currentUser.siblings || '';
+            document.getElementById('hobbies').value = currentUser.hobbies || '';
+            document.getElementById('pr').value = currentUser.pr || '';
+
+            updatePhotoDisplay();
+
+            const priv = currentUser.privacy || {};
+            document.getElementById('priv_birthdate').checked = priv.birthdate !== false;
+            document.getElementById('priv_bloodType').checked = priv.bloodType !== false;
+            document.getElementById('priv_job').checked = priv.job !== false;
+            document.getElementById('priv_income').checked = priv.income !== false;
+            document.getElementById('priv_siblings').checked = priv.siblings !== false;
+            document.getElementById('priv_hobbies').checked = priv.hobbies !== false;
+            document.getElementById('priv_pr').checked = priv.pr !== false;
+        }
+
+        // 画像の軽量化圧縮処理
+        function compressImage(file, maxWidth = 600, quality = 0.8) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                };
+            });
+        }
+
+        // メイン写真選択時のプレビュー処理
+        async function previewMainPhoto(input) {
+            if (input.files && input.files[0]) {
+                const compressedBase64 = await compressImage(input.files[0]);
+                currentPhotoData = compressedBase64;
+                updatePhotoDisplay();
+            }
+        }
+
+        // サブ写真選択時のプレビュー処理
+        async function previewSubPhoto(input, index) {
+            if (input.files && input.files[0]) {
+                const compressedBase64 = await compressImage(input.files[0]);
+                currentSubPhotos[index] = compressedBase64;
+                updatePhotoDisplay();
+            }
+        }
+
+        // メイン写真の削除処理
+        function deleteMainPhoto() {
+            currentPhotoData = '';
+            document.getElementById('photoInput').value = '';
+            updatePhotoDisplay();
+        }
+
+        // サブ写真の削除処理
+        function deleteSubPhoto(index) {
+            currentSubPhotos[index] = '';
+            document.getElementById(`subPhotoInput${index}`).value = '';
+            updatePhotoDisplay();
+        }
+
+        // パスワード変更処理
+        async function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+
+            if (!currentPassword || !newPassword) {
+                alert('現在のパスワードと新しいパスワードを入力してください');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/users/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: currentUser.email, currentPassword, newPassword })
+                });
+                const result = await res.json();
+                alert(result.message);
+                if (result.success) {
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    toggleSection('passwordSection', 'passwordArrow'); // 成功したら閉じる
+                }
+            } catch (err) {
+                alert('通信エラーが発生しました');
+            }
+        }
+
+        // 退会確認と処理
+        async function confirmDeleteAccount() {
+            const password = prompt('退会するには、確認のため現在のパスワードを入力してください。');
+            if (!password) return;
+
+            if (!confirm('本当にさくら結びを退会しますか？この操作は取り消せません。')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/users/delete-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: currentUser.email, password })
+                });
+                const result = await res.json();
+                alert(result.message);
+                if (result.success) {
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'index.html';
+                }
+            } catch (err) {
+                alert('通信エラーが発生しました');
+            }
+        }
+
+        // 保存処理
+        async function saveProfile() {
+            const cleanedSubPhotos = currentSubPhotos.filter(Boolean).slice(0, 2);
+
+            const updatedUser = {
+                ...currentUser,
+                emailNotification: document.getElementById('emailNotification').checked,
+                nickname: document.getElementById('nickname').value.trim(),
+                gender: currentUser.gender,
+                region: document.getElementById('region').value.trim(),
+                birthdate: document.getElementById('birthdate').value,
+                age: parseInt(document.getElementById('age').value) || 0,
+                bloodType: document.getElementById('bloodType').value,
+                job: document.getElementById('job').value.trim(),
+                income: document.getElementById('income').value.trim(),
+                siblings: document.getElementById('siblings').value.trim(),
+                hobbies: document.getElementById('hobbies').value.trim(),
+                pr: document.getElementById('pr').value.trim(),
+                photo: currentPhotoData,
+                photos: cleanedSubPhotos,
+                privacy: {
+                    birthdate: document.getElementById('priv_birthdate').checked,
+                    bloodType: document.getElementById('priv_bloodType').checked,
+                    job: document.getElementById('priv_job').checked,
+                    income: document.getElementById('priv_income').checked,
+                    siblings: document.getElementById('priv_siblings').checked,
+                    hobbies: document.getElementById('priv_hobbies').checked,
+                    pr: document.getElementById('priv_pr').checked
+                }
+            };
+
+            try {
+                const res = await fetch('/api/users/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedUser)
+                });
+                
+                if (!res.ok) {
+                    throw new Error(`HTTPエラー ${res.status}: ${res.statusText}`);
+                }
+
+                const result = await res.json();
+                if (result.success) {
+                    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+                    alert('プロフィールを更新しました！');
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert('更新に失敗しました: ' + result.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert(`通信エラーが発生しました。\n詳細: ${err.message}\n※サーバーが起動していないか、画像サイズが大きすぎる可能性があります。`);
+            }
+        }
+
+        initForm();
+    </script>
+</body>
+</html>

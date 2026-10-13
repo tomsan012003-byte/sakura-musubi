@@ -1,0 +1,14 @@
+# 依存ライブラリ
+node_modules/
+
+# 機密情報・環境変数
+.env
+credentials.json
+
+# テストアップロード画像
+public/uploads/*
+!public/uploads/.gitkeep
+
+# ログファイルやシステムファイル
+*.log
+.DS_Store

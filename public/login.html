@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ログイン - さくら結び</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #fffafb; color: #4a4a4a; padding: 20px; display: flex; justify-content: center; align-items: center; height: 100vh; box-sizing: border-box; }
+        .card { width: 100%; max-width: 420px; padding: 40px 30px; background: #ffffff; border-radius: 20px; box-shadow: 0 8px 25px rgba(255,107,129,0.12); box-sizing: border-box; }
+        h2 { color: #ff6b81; text-align: center; margin-top: 0; }
+        label { display: block; font-weight: bold; margin-top: 15px; font-size: 14px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; margin-top: 5px; font-size: 15px; }
+        button { width: 100%; background: linear-gradient(90deg, #ff6b81, #ff8e9e); color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; font-weight: bold; margin-top: 30px; cursor: pointer; box-shadow: 0 4px 10px rgba(255,107,129,0.3); }
+        button:hover { opacity: 0.9; }
+        .links { margin-top: 20px; text-align: center; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+        .links a { color: #ff6b81; text-decoration: none; }
+        .links a:hover { text-decoration: underline; }
+        .terms-link { text-align: center; margin-top: 25px; }
+        .terms-link a { color: #ff6b81; text-decoration: none; font-size: 13px; font-weight: bold; }
+        .terms-link a:hover { text-decoration: underline; }
+        .back-home { margin-top: 20px; text-align: center; }
+        .back-home a { color: #888; text-decoration: none; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🌸 ログイン</h2>
+        
+        <label>メールアドレス</label>
+        <input type="email" id="loginEmail" placeholder="example@mail.com">
+
+        <label>パスワード</label>
+        <input type="password" id="loginPass" placeholder="パスワード">
+
+        <!-- Safari対策として type="button" は維持 -->
+        <button type="button" onclick="login()">ログイン</button>
+
+        <div class="links">
+            <a href="forgot.html">パスワードをお忘れの方はこちら</a>
+        </div>
+
+        <!-- ★ 利用規約へのリンクを追加しました -->
+        <div class="terms-link">
+            <a href="terms.html" target="_blank">利用規約はこちら</a>
+        </div>
+
+        <div class="back-home">
+            <a href="index.html">← トップに戻る</a>
+        </div>
+    </div>
+
+    <script>
+        async function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPass').value.trim();
+
+            if (!email || !password) {
+                alert('メールアドレスとパスワードを入力してください');
+                return;
+            }
+
+            try {
+                // Safari通信エラー対策：ヘッダーの厳格化とキャッシュ無効化
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    cache: 'no-store',
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const result = await res.json();
+
+                if (!result.success) {
+                    alert(result.message);
+                    return;
+                }
+
+                localStorage.setItem('currentUser', JSON.stringify(result.user));
+
+                if (result.user.role === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (err) {
+                alert('通信エラーが発生しました。Wi-Fiの接続状況を確認してください。\n詳細: ' + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>会員一覧 - さくら結び</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #fffafb; color: #4a4a4a; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; max-width: 900px; margin: 0 auto 20px; background: #fff; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(255,107,129,0.08); }
+        .header h2 { color: #ff6b81; margin: 0; font-size: 22px; }
+        .nav-links { display: flex; gap: 15px; align-items: center; }
+        .nav-links a { color: #ff6b81; text-decoration: none; font-weight: bold; font-size: 14px; }
+        .nav-links a:hover { text-decoration: underline; }
+        
+        /* 検索フィルターのスタイル */
+        .search-filter { max-width: 900px; margin: 0 auto 20px; background: #ffffff; padding: 15px 25px; border-radius: 12px; border: 1px solid #ffe3e8; display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; box-shadow: 0 4px 10px rgba(255,107,129,0.05); }
+        .search-group { display: flex; flex-direction: column; }
+        .search-group label { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #ff6b81; }
+        .search-group input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; }
+        .search-group input:focus { border-color: #ff6b81; }
+        .age-inputs { display: flex; align-items: center; gap: 5px; }
+        .age-inputs input { width: 60px; text-align: center; }
+        .btn-search { background: #ff6b81; color: white; border: none; padding: 9px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; height: fit-content; transition: 0.2s; box-shadow: 0 2px 6px rgba(255,107,129,0.3); }
+        .btn-search:hover { background: #ff526a; }
+        .btn-clear { background: #eee; color: #555; border: none; padding: 9px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; height: fit-content; transition: 0.2s; }
+        .btn-clear:hover { background: #ddd; }
+        .button-group { display: flex; gap: 10px; align-items: flex-end; }
+
+        .container { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+        .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 6px 18px rgba(255,107,129,0.1); text-align: center; position: relative; transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(255,107,129,0.18); }
+        .card-img-area { cursor: pointer; }
+        .card img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ff6b81; margin-bottom: 10px; }
+        .card h3 { margin: 5px 0; color: #333; font-size: 18px; cursor: pointer; }
+        .card p { margin: 4px 0; font-size: 13px; color: #666; }
+        
+        /* カード内のアクションボタンエリア */
+        .card-actions { display: flex; gap: 8px; justify-content: center; margin-top: 15px; align-items: center; }
+        .btn-like { border: none; padding: 7px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 4px; }
+        .btn-chat-link { background: linear-gradient(90deg, #ff6b81, #ff8e9e); color: white; text-decoration: none; padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .btn-chat-link:hover { opacity: 0.9; }
+
+        /* 未読バッジ（赤丸通知） */
+        .unread-badge { 
+            position: absolute; 
+            top: 12px; 
+            right: 12px; 
+            background: #ff4757; 
+            color: white; 
+            border-radius: 50%; 
+            min-width: 22px; 
+            height: 22px; 
+            font-size: 12px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: bold;
+            padding: 0 4px;
+            box-shadow: 0 2px 6px rgba(255, 71, 87, 0.4);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* モーダル画面スタイル */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: #fff; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); position: relative; box-sizing: border-box; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 24px; color: #aaa; cursor: pointer; background: none; border: none; }
+        .close-btn:hover { color: #333; }
+        .modal-img-main { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ff6b81; display: block; margin: 0 auto 15px; }
+        .sub-photos-grid { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+        .sub-photos-grid img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
+        .detail-table { width: 100%; margin-top: 15px; font-size: 14px; border-collapse: collapse; }
+        .detail-table th, .detail-table td { padding: 8px 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .detail-table th { color: #ff6b81; width: 30%; }
+        .chat-btn-in-modal { display: block; width: 100%; background: linear-gradient(90deg, #ff6b81, #ff8e9e); color: white; text-align: center; padding: 12px; border-radius: 25px; text-decoration: none; font-weight: bold; margin-top: 20px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>🌸 さくら結び メンバー</h2>
+        <div class="nav-links">
+            <span id="welcomeMsg" style="font-size: 14px; font-weight: bold;"></span>
+            <a href="edit.html">⚙️ プロフィール編集</a>
+            <a href="index.html" onclick="localStorage.removeItem('currentUser')">ログアウト</a>
+        </div>
+    </div>
+
+    <!-- 検索フィルターエリア -->
+    <div class="search-filter">
+        <div class="search-group">
+            <label>📍 地域（例: 東京）</label>
+            <input type="text" id="searchRegion" placeholder="地域で絞り込み">
+        </div>
+        <div class="search-group">
+            <label>🎂 年齢</label>
+            <div class="age-inputs">
+                <input type="number" id="searchMinAge" placeholder="下限" min="18">
+                <span>〜</span>
+                <input type="number" id="searchMaxAge" placeholder="上限" max="100">
+                <span>歳</span>
+            </div>
+        </div>
+        <div class="button-group">
+            <button class="btn-search" onclick="applyFilters()">検索する</button>
+            <button class="btn-clear" onclick="resetFilters()">クリア</button>
+        </div>
+    </div>
+
+    <div class="container" id="userList">
+        <!-- ユーザーカードがここに動的に表示されます -->
+    </div>
+
+    <!-- プロフィール詳細モーダル -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal()">×</button>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_PHOTO = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23ffe3e8'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%23ff6b81'/%3E%3Cpath d='M 20 85 C 20 65, 35 60, 50 60 C 65 60, 80 65, 80 85 Z' fill='%23ff6b81'/%3E%3C/svg%3E";
+
+        let me = JSON.parse(localStorage.getItem('currentUser'));
+        if (!me) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('welcomeMsg').textContent = `ようこそ、${me.nickname}さん`;
+
+        let allUsers = [];
+        let allMessages = [];
+        let filteredUsers = [];
+
+        async function loadData() {
+            try {
+                const [uRes, mRes] = await Promise.all([
+                    fetch('/api/users'),
+                    fetch('/api/messages-all')
+                ]);
+                const users = await uRes.json();
+                allMessages = await mRes.json();
+                
+                // 自分自身の最新データも同期
+                const latestMe = users.find(u => u.email.toLowerCase() === me.email.toLowerCase());
+                if (latestMe) {
+                    me = latestMe;
+                    localStorage.setItem('currentUser', JSON.stringify(me));
+                }
+
+                allUsers = users.filter(u => u.email.toLowerCase() !== me.email.toLowerCase() && u.role !== 'admin' && u.gender !== me.gender);
+                
+                applyFilters();
+            } catch (err) {
+                console.error('データ取得エラー', err);
+            }
+        }
+
+        function applyFilters() {
+            const regionKeyword = document.getElementById('searchRegion').value.trim().toLowerCase();
+            const minAgeStr = document.getElementById('searchMinAge').value;
+            const maxAgeStr = document.getElementById('searchMaxAge').value;
+
+            const minAge = minAgeStr ? parseInt(minAgeStr) : 0;
+            const maxAge = maxAgeStr ? parseInt(maxAgeStr) : 999;
+
+            filteredUsers = allUsers.filter(user => {
+                const userRegion = (user.region || '').toLowerCase();
+                const matchRegion = regionKeyword === '' || userRegion.includes(regionKeyword);
+
+                const userAge = parseInt(user.age) || 0;
+                const matchAge = userAge >= minAge && userAge <= maxAge;
+
+                return matchRegion && matchAge;
+            });
+
+            renderUsers();
+        }
+
+        function resetFilters() {
+            document.getElementById('searchRegion').value = '';
+            document.getElementById('searchMinAge').value = '';
+            document.getElementById('searchMaxAge').value = '';
+            filteredUsers = [...allUsers];
+            renderUsers();
+        }
+
+        function renderUsers() {
+            const container = document.getElementById('userList');
+            container.innerHTML = '';
+
+            if (filteredUsers.length === 0) {
+                container.innerHTML = '<p style="text-align:center; grid-column:1/-1; color:#888;">条件に合うお相手が見つかりません</p>';
+                return;
+            }
+
+            filteredUsers.forEach(user => {
+                const unreadCount = allMessages.filter(m => m.senderEmail.toLowerCase() === user.email.toLowerCase() && m.receiverEmail.toLowerCase() === me.email.toLowerCase() && !m.read).length;
+                
+                // すでに「気になる人」に入れているか判定
+                const isLiked = me.likes && me.likes.includes(user.email.toLowerCase());
+
+                const card = document.createElement('div');
+                card.className = 'card';
+
+                const photoUrl = user.photo || DEFAULT_PHOTO;
+
+                card.innerHTML = `
+                    ${unreadCount > 0 ? `<div class="unread-badge">${unreadCount}</div>` : ''}
+                    <div class="card-img-area" onclick="openModal('${user.email}')">
+                        <img src="${photoUrl}" alt="写真" onerror="this.src='${DEFAULT_PHOTO}'">
+                        <h3>${user.nickname}</h3>
+                        <p>${user.age}歳 / ${user.region}</p>
+                        <p style="font-size:12px; color:#ff6b81; margin-top:5px;">クリックして詳細を見る</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-like" onclick="toggleLike('${user.email}')" style="background:${isLiked ? '#ffe3e8' : '#f1f2f6'}; color:${isLiked ? '#ff4757' : '#555'}; border: 1px solid ${isLiked ? '#ff6b81' : '#ddd'};">
+                            ${isLiked ? '💖 気になる人' : '👀 気になる'}
+                        </button>
+                        <a href="chat.html?to=${encodeURIComponent(user.email)}" class="btn-chat-link">💬 チャット</a>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 「気になる」ボタン押下時の処理
+        async function toggleLike(targetEmail) {
+            try {
+                const res = await fetch('/api/like', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ myEmail: me.email, targetEmail })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    me.likes = result.likes;
+                    localStorage.setItem('currentUser', JSON.stringify(me));
+                    renderUsers();
+                } else {
+                    alert(result.message);
+                }
+            } catch (err) {
+                alert('通信エラーが発生しました');
+            }
+        }
+
+        function openModal(userEmail) {
+            const user = allUsers.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
+            if (!user) return;
+
+            const modal = document.getElementById('profileModal');
+            const body = document.getElementById('modalBody');
+
+            const photoUrl = user.photo || DEFAULT_PHOTO;
+            const priv = user.privacy || {};
+
+            let subPhotosHtml = '';
+            if (user.photos && user.photos.length > 0) {
+                subPhotosHtml = `
+                    <div class="sub-photos-grid">
+                        ${user.photos.map(p => `<img src="${p}" onerror="this.style.display='none';">`).join('')}
+                    </div>
+                `;
+            }
+
+            const birthdateVal = (priv.birthdate !== false && user.birthdate) ? user.birthdate : '非公開';
+            const bloodVal = (priv.bloodType !== false && user.bloodType) ? user.bloodType : '非公開';
+            const jobVal = (priv.job !== false && user.job) ? user.job : '非公開';
+            const incomeVal = (priv.income !== false && user.income) ? user.income : '非公開';
+            const siblingsVal = (priv.siblings !== false && user.siblings) ? user.siblings : '非公開';
+            const hobbiesVal = (priv.hobbies !== false && user.hobbies) ? user.hobbies : '非公開';
+            const prVal = (priv.pr !== false && user.pr) ? user.pr : '非公開';
+
+            body.innerHTML = `
+                <img src="${photoUrl}" class="modal-img-main" onerror="this.src='${DEFAULT_PHOTO}'">
+                <h2 style="text-align:center; color:#ff6b81; margin:0 0 5px 0;">${user.nickname}</h2>
+                <p style="text-align:center; color:#666; font-size:14px; margin:0 0 15px 0;">${user.age}歳 ・ ${user.region}</p>
+                
+                ${subPhotosHtml}
+
+                <table class="detail-table">
+                    <tr><th>生年月日</th><td>${birthdateVal}</td></tr>
+                    <tr><th>血液型</th><td>${bloodVal}</td></tr>
+                    <tr><th>職業</th><td>${jobVal}</td></tr>
+                    <tr><th>年収</th><td>${incomeVal}</td></tr>
+                    <tr><th>兄弟構成</th><td>${siblingsVal}</td></tr>
+                    <tr><th>趣味</th><td>${hobbiesVal}</td></tr>
+                    <tr><th>自己PR</th><td style="white-space: pre-wrap;">${prVal}</td></tr>
+                </table>
+
+                <a href="chat.html?to=${encodeURIComponent(user.email)}" class="chat-btn-in-modal">💬 この人とメッセージを送る</a>
+            `;
+
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('profileModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('profileModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // 初回ロード
+        loadData();
+
+        // 5秒ごとに最新の未読状況を自動読み込み
+        setInterval(loadData, 5000);
+    </script>
+</body>
+</html>
