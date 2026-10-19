@@ -199,8 +199,12 @@
             }
 
             filteredUsers.forEach(user => {
-                const unreadCount = allMessages.filter(m => m.senderEmail.toLowerCase() === user.email.toLowerCase() && m.receiverEmail.toLowerCase() === me.email.toLowerCase() && !m.read).length;
-                
+                const unreadCount = allMessages.filter(m => {
+                    const sEmail = (m.sender_email || m.senderEmail || '').toLowerCase();
+                    const rEmail = (m.receiver_email || m.receiverEmail || '').toLowerCase();
+                    return sEmail === user.email.toLowerCase() && rEmail === me.email.toLowerCase() && !m.read;
+                }).length;
+
                 // すでに「気になる人」に入れているか判定
                 const isLiked = me.likes && me.likes.includes(user.email.toLowerCase());
 
