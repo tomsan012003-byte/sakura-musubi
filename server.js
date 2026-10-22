@@ -106,7 +106,9 @@ const upload = multer({
 const pendingRegistrations = {};
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // ポート465の場合は true に設定
     auth: {
         user: 'sakura.musubi01@gmail.com',
         pass: 'xqelimtqgavikxee'
